@@ -184,12 +184,11 @@ const PLANET_ORDER = [
 ];
 
 const ASPECT_DEFS = [
-  { name: 'Соединение',  angle: 0,   orb: 8 },
-  { name: 'Секстиль',    angle: 60,  orb: 6 },
-  { name: 'Квадратура',  angle: 90,  orb: 8 },
-  { name: 'Тригон',      angle: 120, orb: 8 },
-  { name: 'Квиконс',     angle: 150, orb: 4 },
-  { name: 'Оппозиция',   angle: 180, orb: 8 },
+  { name: 'Соединение',  angle: 0,   orb: 2 },
+  { name: 'Секстиль',    angle: 60,  orb: 1.5 },
+  { name: 'Квадратура',  angle: 90,  orb: 2 },
+  { name: 'Тригон',      angle: 120, orb: 2 },
+  { name: 'Оппозиция',   angle: 180, orb: 2 },
 ];
 
 function norm(d) { let r = d % 360; return r < 0 ? r + 360 : r; }
@@ -320,8 +319,9 @@ function calcAspects(pos) {
     const isOut = ['uranus','neptune','pluto'].includes(k1) || ['uranus','neptune','pluto'].includes(k2);
     for (const a of ASPECT_DEFS) {
       let orb = a.orb;
-      if (isLum) orb += 2; else if (isOut) orb *= 0.8;
-      if ((isAng || isFic) && !isAngPt) orb *= 0.8;
+      if (isLum) orb = Math.min(orb + 1, 3); // светила: до 3°
+      else if (isOut) orb = orb; // высшие планеты: без изменений
+      if (isFic && !isAngPt) orb *= 0.5; // фиктивные точки: ещё уже
       const o = Math.abs(d - a.angle);
       if (o <= orb) {
         const s1 = pos[k1].speed||0, s2 = pos[k2].speed||0, sd = s1-s2;
@@ -470,14 +470,13 @@ window.calculateSolar = function() {
                          'north_node','south_node','lilith','selena','chiron','vertex','pars_fortuna','asc','mc'];
       const fic = ['north_node','south_node','lilith','selena','vertex','pars_fortuna'];
 
-      // Орбы для кросс-аспектов соляра (значительно уже натальных)
+      // Орбы для кросс-аспектов соляра (строгие прогностические орбы)
       const CROSS_ASPECTS = [
-        { name: 'Соединение',  angle: 0,   orb: 2 },
-        { name: 'Секстиль',    angle: 60,  orb: 1.5 },
-        { name: 'Квадратура',  angle: 90,  orb: 2 },
-        { name: 'Тригон',      angle: 120, orb: 2 },
-        { name: 'Квиконс',     angle: 150, orb: 1 },
-        { name: 'Оппозиция',   angle: 180, orb: 2 },
+        { name: 'Соединение',  angle: 0,   orb: 1.5 },
+        { name: 'Секстиль',    angle: 60,  orb: 1 },
+        { name: 'Квадратура',  angle: 90,  orb: 1.5 },
+        { name: 'Тригон',      angle: 120, orb: 1.5 },
+        { name: 'Оппозиция',   angle: 180, orb: 1.5 },
       ];
 
       for (const sk of solarKeys) {
@@ -491,9 +490,9 @@ window.calculateSolar = function() {
           const isAngPt = ['asc','mc'].includes(nk);
           for (const a of CROSS_ASPECTS) {
             let orb = a.orb;
-            if (isLum) orb += 1;       // 3° для светил
-            if (isAngPt) orb += 0.5;   // чуть шире для ASC/MC
-            if (isFic && !isAngPt) orb *= 0.7;
+            if (isLum) orb = Math.min(orb + 0.5, 2); // светила: макс 2°
+            if (isAngPt) orb = Math.min(orb + 0.5, 2); // ASC/MC натала: макс 2°
+            if (isFic && !isAngPt) orb *= 0.5; // фиктивные точки: ещё строже
             const o = Math.abs(d - a.angle);
             if (o <= orb) {
               crossAsp.push({ solar: sk, natal: nk, type: a.name, orb: o.toFixed(2) });
@@ -571,6 +570,60 @@ window.calculateSolar = function() {
       const nName = PLANET_NAMES[a.natal] || a.natal;
       L.push(`${sName} (С) ${a.type} ${nName} (Н) (орб ${a.orb}°)`);
     });
+
+    // ── Куспиды соляра → натальные планеты/куспиды (орб 1-2°) ──
+    L.push(''); L.push('────────── ОСИ СОЛЯРА → НАТАЛ (≤2°) ──────────'); L.push('');
+    const solarAngles = [
+      { name: 'ASC Соляра', lon: houses.asc },
+      { name: 'DSC Соляра', lon: norm(houses.asc + 180) },
+      { name: 'MC Соляра',  lon: houses.mc },
+      { name: 'IC Соляра',  lon: norm(houses.mc + 180) },
+    ];
+    const natalTargets = [];
+    // натальные планеты
+    for (const k of PLANET_ORDER) {
+      if (natalPos[k] && !isNaN(natalPos[k].longitude)) {
+        natalTargets.push({ name: PLANET_NAMES[k] || k, lon: natalPos[k].longitude });
+      }
+    }
+    // натальные углы
+    if (!isNaN(natalHouses.asc)) {
+      natalTargets.push({ name: 'ASC Натала', lon: natalHouses.asc });
+      natalTargets.push({ name: 'DSC Натала', lon: norm(natalHouses.asc + 180) });
+    }
+    if (!isNaN(natalHouses.mc)) {
+      natalTargets.push({ name: 'MC Натала', lon: natalHouses.mc });
+      natalTargets.push({ name: 'IC Натала', lon: norm(natalHouses.mc + 180) });
+    }
+    // натальные куспиды домов
+    if (natalHouses.cusps && natalHouses.cusps.length >= 12) {
+      for (let i = 0; i < 12; i++) {
+        // пропускаем 1(AC), 4(IC), 7(DC), 10(MC) — уже добавлены выше
+        if ([0,3,6,9].includes(i)) continue;
+        natalTargets.push({ name: 'Куспид ' + (i+1) + ' дома Натала', lon: natalHouses.cusps[i] });
+      }
+    }
+    const CONJ_ASPECTS = [
+      { name: 'Соединение', angle: 0, orb: 2 },
+      { name: 'Оппозиция',  angle: 180, orb: 2 },
+      { name: 'Квадратура',  angle: 90, orb: 1.5 },
+      { name: 'Тригон',      angle: 120, orb: 1.5 },
+    ];
+    const cuspsAsp = [];
+    for (const sa of solarAngles) {
+      for (const nt of natalTargets) {
+        let d = Math.abs(sa.lon - nt.lon); if (d > 180) d = 360 - d;
+        for (const a of CONJ_ASPECTS) {
+          const o = Math.abs(d - a.angle);
+          if (o <= a.orb) {
+            cuspsAsp.push({ solarAngle: sa.name, natalPoint: nt.name, type: a.name, orb: o.toFixed(2) });
+          }
+        }
+      }
+    }
+    cuspsAsp.sort((a, b) => parseFloat(a.orb) - parseFloat(b.orb));
+    if (!cuspsAsp.length) L.push('Аспектов осей не обнаружено');
+    else cuspsAsp.forEach(a => L.push(`${a.solarAngle} ${a.type} ${a.natalPoint} (орб ${a.orb}°)`));
 
     L.push(''); L.push('══════════════════════════════════════');
 

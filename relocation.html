@@ -127,9 +127,6 @@
 <div class="wrap" id="resultBlock" style="display:none;">
   <div class="out-wrap">
 
-    <!-- Diagnostic info bar -->
-    <div id="diagBar" style="padding:14px 0 10px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#555;line-height:1.8;border-bottom:1px solid #1a1a18;margin-bottom:12px;"></div>
-
     <div class="out-head">
       <span class="out-title">Полный вывод</span>
       <button class="copy-btn" id="copyBtn" onclick="window.copyText()">⎘ Копировать</button>
@@ -566,33 +563,11 @@ window.calc = function() {
 
     if (movedCount === 0) L.push('Ни одна планета не сменила дом.');
 
-    // ── Диагностика ──
-    L.push('');
-    L.push('────────── ДИАГНОСТИКА ──────────');
-    L.push('');
-    L.push(`Ввод: ${bDate} ${bTime}, пояс "${bTz}" → ${uBirth.tzAbbr} (UTC${uBirth.utcOffset >= 0 ? '+' : ''}${uBirth.utcOffset})`);
-    L.push(`UTC: ${uBirth.year}-${String(uBirth.month).padStart(2,'0')}-${String(uBirth.day).padStart(2,'0')} ${String(uBirth.hour).padStart(2,'0')}:${String(uBirth.minute).padStart(2,'0')}:${String(uBirth.second).padStart(2,'0')}`);
-    L.push(`JD: ${jd.toFixed(6)}`);
-    L.push(`Координаты рождения: ${bLat.toFixed(4)}°, ${bLon.toFixed(4)}°` + (birthCityVal ? ` (${birthCityVal})` : ''));
-    L.push(`Координаты релокации: ${rLat.toFixed(4)}°, ${rLon.toFixed(4)}°` + (relocCityVal ? ` (${relocCityVal})` : ''));
-    L.push('');
-    L.push(`Натал  AC: ${fmtDeg(natalHouses.asc)}, MC: ${fmtDeg(natalHouses.mc)}`);
-    L.push(`Релок  AC: ${fmtDeg(relocHouses.asc)}, MC: ${fmtDeg(relocHouses.mc)}`);
-
     L.push('');
     L.push('══════════════════════════════════════');
 
     document.getElementById('output').value = L.join('\n');
     document.getElementById('resultBlock').style.display = 'block';
-
-    // Diagnostic bar
-    const dBar = document.getElementById('diagBar');
-    const ub = uBirth;
-    dBar.innerHTML = [
-      `<b>UTC:</b> ${ub.year}-${String(ub.month).padStart(2,'0')}-${String(ub.day).padStart(2,'0')} ${String(ub.hour).padStart(2,'0')}:${String(ub.minute).padStart(2,'0')} | JD: ${jd.toFixed(4)} | пояс: ${bTz} → ${ub.tzAbbr} (UTC${ub.utcOffset>=0?'+':''}${ub.utcOffset})`,
-      `<b>НАТАЛ:</b> ${bLat.toFixed(4)}°, ${bLon.toFixed(4)}° ${birthCityVal ? '(' + esc(birthCityVal) + ')' : ''} | AC: ${fmtDeg(natalHouses.asc)} | MC: ${fmtDeg(natalHouses.mc)}`,
-      `<b>РЕЛОКАЦИЯ:</b> ${rLat.toFixed(4)}°, ${rLon.toFixed(4)}° ${relocCityVal ? '(' + esc(relocCityVal) + ')' : ''} | AC: ${fmtDeg(relocHouses.asc)} | MC: ${fmtDeg(relocHouses.mc)}`,
-    ].join('<br>');
 
   } catch(e) {
     console.error(e);
