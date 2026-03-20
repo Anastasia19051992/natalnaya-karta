@@ -6,12 +6,13 @@
 <title>Натал + Транзиты</title>
 <meta name="theme-color" content="#111110">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&family=DM+Sans:wght@400;500;600&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #111110; color: #bbb8ac; font-family: 'DM Sans', sans-serif; font-size: 14px; min-height: 100vh; }
   ::selection { background: #c9956b; color: #111; }
-  .wrap { max-width: 740px; margin: 0 auto; }
+  .wrap { max-width: 860px; margin: 0 auto; }
   .header { border-bottom: 1px solid #2a2a26; background: linear-gradient(180deg, #1a1a18, #111110); }
   .header-inner { padding: 26px 24px 22px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
   h1 { font-family: 'IBM Plex Mono', monospace; font-size: 20px; font-weight: 500; color: #e5e1d5; letter-spacing: 0.3px; }
@@ -58,6 +59,38 @@
   .gender-option input[type="radio"] { display: none; }
   .gender-label { display: inline-block; padding: 10px 28px; background: #1a1a18; border: 1px solid #2a2a26; border-radius: 4px; color: #777; font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 500; transition: all .2s; }
   .gender-option input[type="radio"]:checked + .gender-label { border-color: #c9956b; color: #e5e1d5; background: #1f1d18; }
+
+  /* ── Таблица сопоставления ── */
+  .result-table { width: 100%; border-collapse: collapse; font-family: 'IBM Plex Mono', monospace; font-size: 11px; margin-bottom: 20px; }
+  .result-table th { font-size: 10px; font-weight: 500; color: #777; letter-spacing: 1px; text-transform: uppercase; padding: 10px 8px; text-align: left; border-bottom: 1px solid #2a2a26; white-space: nowrap; }
+  .result-table td { padding: 8px 8px; border-bottom: 1px solid #1a1a18; color: #c8c4b8; white-space: nowrap; vertical-align: top; }
+  .result-table tr:hover td { background: #1a1a18; }
+  .tbl-section { padding: 14px 8px 6px; font-size: 11px; font-weight: 500; color: #c9956b; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid #2a2a26; }
+  .col-natal { color: #8ab4c8; }
+  .col-transit { color: #c9956b; }
+  .col-aspect { color: #b8a070; }
+  .retro { color: #c44; font-weight: 500; }
+  .orb { color: #666; font-size: 10px; }
+
+  .result-section { margin-bottom: 24px; }
+  .result-section-title { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; color: #c9956b; letter-spacing: 1.5px; text-transform: uppercase; padding-bottom: 8px; border-bottom: 1px solid #2a2a26; margin-bottom: 0; }
+
+  .houses-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+  @media (max-width: 600px) { .houses-grid { grid-template-columns: 1fr; } }
+  .houses-col { }
+  .houses-col-title { font-size: 10px; font-weight: 500; color: #777; letter-spacing: 1px; text-transform: uppercase; padding: 10px 8px; border-bottom: 1px solid #2a2a26; }
+  .houses-col table { width: 100%; border-collapse: collapse; }
+  .houses-col td { padding: 6px 8px; border-bottom: 1px solid #1a1a18; color: #c8c4b8; }
+  .houses-col td:first-child { color: #777; width: 70px; }
+
+  .tabs { display: flex; gap: 0; margin-bottom: 0; border-bottom: 1px solid #2a2a26; }
+  .tab { padding: 12px 22px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 1px; color: #666; cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; user-select: none; }
+  .tab:hover { color: #999; }
+  .tab.active { color: #c9956b; border-bottom-color: #c9956b; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 </style>
 </head>
 <body>
@@ -67,12 +100,14 @@
   <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
     <span class="status loading" id="sweStatus">загрузка...</span>
     <a href="index.html" class="nav-btn">← Натальная</a>
+    <a href="transits.html" class="nav-btn">Транзиты</a>
     <a href="solar.html" class="nav-btn">Соляр</a>
   </div>
 </div></div>
 
 <div class="wrap form-wrap">
   <div class="grid">
+    <!-- ── Данные рождения ── -->
     <div class="full"><div class="section-title">Данные рождения</div></div>
     <div class="full"><label>Имя</label><input id="name" placeholder="Введите имя" autocomplete="off"></div>
     <div><label>Дата рождения</label><input type="date" id="birthDate" value="1990-03-21"></div>
@@ -80,7 +115,7 @@
     <div>
       <label>Город рождения</label>
       <div class="autocomplete">
-        <input id="birthCity" placeholder="Город рождения..." autocomplete="off">
+        <input id="birthCity" placeholder="Начните вводить..." autocomplete="off">
       </div>
     </div>
     <div>
@@ -92,35 +127,34 @@
     </div>
     <div class="full">
       <div class="row">
-        <div><label>Широта</label><input id="birthLat" placeholder="Широта"></div>
-        <div><label>Долгота</label><input id="birthLon" placeholder="Долгота"></div>
+        <div><label>Широта</label><input id="birthLat" placeholder="55.7558"></div>
+        <div><label>Долгота</label><input id="birthLon" placeholder="37.6173"></div>
       </div>
     </div>
     <div class="full">
-      <label>Часовой пояс рождения (IANA)</label>
+      <label>Часовой пояс (IANA)</label>
       <input id="birthTz" placeholder="Europe/Moscow">
     </div>
 
+    <!-- ── Транзиты ── -->
     <div class="full"><div class="section-title">Транзиты</div></div>
     <div><label>Дата транзита</label><input type="date" id="transitDate"></div>
     <div><label>Время транзита</label><input type="time" id="transitTime" value="12:00"></div>
+    <div>
+      <label>Город транзита (локальные дома)</label>
+      <div class="autocomplete">
+        <input id="transitCity" placeholder="Начните вводить..." autocomplete="off">
+      </div>
+    </div>
+    <div>
+      <div class="row">
+        <div><label>Широта</label><input id="transitLat" placeholder="55.7558"></div>
+        <div><label>Долгота</label><input id="transitLon" placeholder="37.6173"></div>
+      </div>
+    </div>
     <div class="full">
-      <label>Часовой пояс транзита (UTC)</label>
-      <select id="transitTz">
-        <option value="-12">UTC-12</option><option value="-11">UTC-11</option>
-        <option value="-10">UTC-10</option><option value="-9">UTC-9</option>
-        <option value="-8">UTC-8</option><option value="-7">UTC-7</option>
-        <option value="-6">UTC-6</option><option value="-5">UTC-5</option>
-        <option value="-4">UTC-4</option><option value="-3">UTC-3</option>
-        <option value="-2">UTC-2</option><option value="-1">UTC-1</option>
-        <option value="0">UTC+0</option><option value="1">UTC+1</option>
-        <option value="2">UTC+2</option><option value="3" selected>UTC+3 (Москва)</option>
-        <option value="4">UTC+4</option><option value="5">UTC+5</option>
-        <option value="6">UTC+6</option><option value="7">UTC+7</option>
-        <option value="8">UTC+8</option><option value="9">UTC+9</option>
-        <option value="10">UTC+10</option><option value="11">UTC+11</option>
-        <option value="12">UTC+12</option>
-      </select>
+      <label>Часовой пояс транзита (IANA)</label>
+      <input id="transitTz" placeholder="Europe/Moscow">
     </div>
   </div>
   <button class="btn" id="calcBtn" onclick="window.calc()">РАССЧИТАТЬ</button>
@@ -129,11 +163,39 @@
 
 <div class="wrap" id="resultBlock" style="display:none;">
   <div class="out-wrap">
-    <div class="out-head">
-      <span class="out-title">Натал + Транзиты</span>
-      <button class="copy-btn" id="copyBtn" onclick="window.copyText()">⎘ Копировать</button>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="tabTable">Сопоставление</div>
+      <div class="tab" data-tab="tabAspects">Аспекты</div>
+      <div class="tab" data-tab="tabHouses">Дома</div>
+      <div class="tab" data-tab="tabText">Текст</div>
     </div>
-    <textarea id="output" rows="55" readonly></textarea>
+
+    <!-- Tab: Table -->
+    <div class="tab-content active" id="tabTable">
+      <div class="scroll-x" id="comparisonTable"></div>
+    </div>
+
+    <!-- Tab: Aspects -->
+    <div class="tab-content" id="tabAspects">
+      <div class="scroll-x" id="aspectsTable"></div>
+    </div>
+
+    <!-- Tab: Houses -->
+    <div class="tab-content" id="tabHouses">
+      <div id="housesBlock"></div>
+    </div>
+
+    <!-- Tab: Text -->
+    <div class="tab-content" id="tabText">
+      <div class="out-head" style="margin-top:16px;">
+        <span class="out-title">Полный вывод</span>
+        <button class="copy-btn" id="copyBtn" onclick="window.copyText()">⎘ Копировать</button>
+      </div>
+      <textarea id="output" rows="55" readonly></textarea>
+    </div>
+
   </div>
 </div>
 
@@ -163,7 +225,18 @@ const SE_BODIES = {
 const SIGNS = ['Овен','Телец','Близнецы','Рак','Лев','Дева',
                'Весы','Скорпион','Стрелец','Козерог','Водолей','Рыбы'];
 
+const SIGN_SYM = ['a','s','d','f','g','h','j','k','l','z','x','c'];
+
 const PLANET_NAMES = {
+  sun:'Солнце', moon:'Луна', mercury:'Меркурий', venus:'Венера',
+  mars:'Марс', jupiter:'Юпитер', saturn:'Сатурн', uranus:'Уран',
+  neptune:'Нептун', pluto:'Плутон', north_node:'Сев.узел',
+  south_node:'Юж.узел', lilith:'Лилит', selena:'Селена',
+  chiron:'Хирон', vertex:'Вертекс', pars_fortuna:'Парс Фортуны',
+  asc:'AC', mc:'MC',
+};
+
+const PLANET_NAMES_FULL = {
   sun:'Солнце', moon:'Луна', mercury:'Меркурий', venus:'Венера',
   mars:'Марс', jupiter:'Юпитер', saturn:'Сатурн', uranus:'Уран',
   neptune:'Нептун', pluto:'Плутон', north_node:'Сев. узел (Раху)',
@@ -179,12 +252,13 @@ const PLANET_ORDER = [
 ];
 
 const ASPECT_DEFS = [
-  { name: 'Соединение', angle: 0, orb: 3 },
-  { name: 'Секстиль', angle: 60, orb: 2 },
-  { name: 'Квадратура', angle: 90, orb: 3 },
-  { name: 'Тригон', angle: 120, orb: 3 },
-  { name: 'Квиконс', angle: 150, orb: 1.5 },
-  { name: 'Оппозиция', angle: 180, orb: 3 },
+  { name: 'Соединение', sym: '☌', angle: 0,   orb: 3 },
+  { name: 'Полусекстиль', sym: '⚺', angle: 30, orb: 1 },
+  { name: 'Секстиль',   sym: '⚹', angle: 60,  orb: 3 },
+  { name: 'Квадратура',  sym: '□', angle: 90,  orb: 3 },
+  { name: 'Тригон',      sym: '△', angle: 120, orb: 3 },
+  { name: 'Квиконс',     sym: '⚻', angle: 150, orb: 2 },
+  { name: 'Оппозиция',   sym: '☍', angle: 180, orb: 3 },
 ];
 
 function norm(d) { let r = d % 360; return r < 0 ? r + 360 : r; }
@@ -199,6 +273,12 @@ function fmtDeg(deg) {
   if (isNaN(deg)) return '—';
   const i = degToSign(deg);
   return `${i.degree}\u00B0${String(i.minute).padStart(2,'0')}'${String(i.second).padStart(2,'0')}" ${i.sign}`;
+}
+
+function fmtDegShort(deg) {
+  if (isNaN(deg)) return '—';
+  const i = degToSign(deg);
+  return `${i.degree}\u00B0${String(i.minute).padStart(2,'0')}' ${i.sign}`;
 }
 
 function houseOf(deg, cusps) {
@@ -277,14 +357,11 @@ function localToUTC(year, month, day, hour, minute, tz) {
   return { year: u.year(), month: u.month()+1, day: u.date(), hour: u.hour(), minute: u.minute(), second: u.second(), utcOffset: off, tzAbbr: abbr };
 }
 
-// Кросс-аспекты транзит → натал
+// ── Кросс-аспекты: транзит → натал, макс 3° ──
 function calcCrossAspects(transitPos, natalPos) {
   const result = [];
-  const tKeys = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto',
-                 'north_node','south_node','lilith','selena','chiron'];
-  const nKeys = ['sun','moon','mercury','venus','mars','jupiter','saturn','uranus','neptune','pluto',
-                 'north_node','south_node','lilith','selena','chiron','vertex','pars_fortuna','asc','mc'];
-  const fic = ['north_node','south_node','lilith','selena','vertex','pars_fortuna'];
+  const tKeys = PLANET_ORDER;
+  const nKeys = [...PLANET_ORDER, 'vertex', 'pars_fortuna', 'asc', 'mc'];
 
   for (const tk of tKeys) {
     if (!transitPos[tk] || isNaN(transitPos[tk].longitude)) continue;
@@ -292,24 +369,18 @@ function calcCrossAspects(transitPos, natalPos) {
       if (!natalPos[nk] || isNaN(natalPos[nk].longitude)) continue;
       let d = Math.abs(transitPos[tk].longitude - natalPos[nk].longitude);
       if (d > 180) d = 360 - d;
-      const isLum = tk==='sun'||tk==='moon'||nk==='sun'||nk==='moon';
-      const isFic = fic.includes(tk) || fic.includes(nk);
-      const isAngPt = ['asc','mc'].includes(nk);
       for (const a of ASPECT_DEFS) {
-        let orb = a.orb;
-        if (isLum) orb += 1;
-        if (isAngPt) orb += 0.5;
-        if (isFic && !isAngPt) orb *= 0.6;
         const o = Math.abs(d - a.angle);
-        if (o <= orb) {
-          result.push({ transit: tk, natal: nk, type: a.name, orb: o.toFixed(2) });
+        if (o <= a.orb) {
+          result.push({ transit: tk, natal: nk, type: a.name, sym: a.sym, orb: o.toFixed(2), orbNum: o });
         }
       }
     }
   }
-  return result.sort((a, b) => parseFloat(a.orb) - parseFloat(b.orb));
+  return result.sort((a, b) => a.orbNum - b.orbNum);
 }
 
+// ── Инициализация SWE ──
 async function initSWE() {
   const el = document.getElementById('sweStatus');
   try {
@@ -326,6 +397,17 @@ async function initSWE() {
 
 document.getElementById('transitDate').value = new Date().toISOString().split('T')[0];
 
+// ── Tabs ──
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ── РАСЧЁТ ──
 window.calc = function() {
   const errEl = document.getElementById('error');
   errEl.textContent = '';
@@ -341,23 +423,30 @@ window.calc = function() {
     const bTz = document.getElementById('birthTz').value;
     const tDate = document.getElementById('transitDate').value;
     const tTime = document.getElementById('transitTime').value;
-    const tTzOffset = parseInt(document.getElementById('transitTz').value);
+    const tTz = document.getElementById('transitTz').value;
+    const tLat = parseFloat(document.getElementById('transitLat').value);
+    const tLon = parseFloat(document.getElementById('transitLon').value);
     const gender = document.querySelector('input[name="gender"]:checked').value;
     const nameVal = document.getElementById('name').value;
+    const birthCityVal = document.getElementById('birthCity').value;
+    const transitCityVal = document.getElementById('transitCity').value;
 
-    if (!bDate || !bTime || !bLat || !bLon || !bTz || !tDate) throw new Error('Заполните все поля.');
+    if (!bDate || !bTime || !bLat || !bLon || !bTz || !tDate) throw new Error('Заполните все поля рождения и дату транзита.');
+    if (!tTz) throw new Error('Укажите часовой пояс транзита (выберите город).');
 
     const [bYear, bMonth, bDay] = bDate.split('-').map(Number);
     const [bHour, bMin] = bTime.split(':').map(Number);
     const [tYear, tMonth, tDay] = tDate.split('-').map(Number);
     const [tHour, tMin] = tTime.split(':').map(Number);
 
-    // Натальная карта
+    // ── Натальная карта ──
     const uBirth = localToUTC(bYear, bMonth, bDay, bHour, bMin, bTz);
     const jdBirth = sweJulday(uBirth.year, uBirth.month, uBirth.day, uBirth.hour + uBirth.minute/60 + uBirth.second/3600);
 
     const natalPos = calcPositions(jdBirth);
     const natalHouses = calcAllHouses(jdBirth, bLat, bLon);
+
+    // Парс Фортуны
     if (natalPos.sun && natalPos.moon && !isNaN(natalHouses.asc)) {
       const sunH = houseOf(natalPos.sun.longitude, natalHouses.cusps);
       const isDay = sunH >= 7 && sunH <= 12;
@@ -367,50 +456,42 @@ window.calc = function() {
     natalPos.mc = { longitude: natalHouses.mc, isAngle: true };
     natalPos.vertex = { longitude: natalHouses.vertex, isAngle: true };
 
-    // Транзитные позиции
-    const utcTransitHour = tHour - tTzOffset + tMin / 60;
-    let utcTDay = tDay, h = utcTransitHour;
-    if (h < 0) { h += 24; utcTDay--; }
-    if (h >= 24) { h -= 24; utcTDay++; }
-    const jdTransit = sweJulday(tYear, tMonth, utcTDay, h);
+    // ── Транзитные позиции ──
+    const uTransit = localToUTC(tYear, tMonth, tDay, tHour, tMin, tTz);
+    const jdTransit = sweJulday(uTransit.year, uTransit.month, uTransit.day, uTransit.hour + uTransit.minute/60 + uTransit.second/3600);
     const transitPos = calcPositions(jdTransit);
 
-    const tzStr = (tTzOffset >= 0 ? '+' : '') + tTzOffset;
-
-    // Вывод
-    const L = [];
-    L.push('══════════ НАТАЛ + ТРАНЗИТЫ ══════════');
-    L.push('');
-    if (nameVal) L.push('Имя: ' + nameVal);
-    if (gender) L.push('Пол: ' + gender);
-    L.push('Дата рождения: ' + bDate + ', ' + bTime + ' (' + uBirth.tzAbbr + ')');
-    L.push('Дата транзита: ' + tDate + ', ' + tTime + ' (UTC' + tzStr + ')');
-
-    // Транзитные планеты с натальным домом
-    L.push(''); L.push('────────── ТРАНЗИТНЫЕ ПЛАНЕТЫ ──────────'); L.push('');
-    PLANET_ORDER.forEach(k => {
-      const p = transitPos[k]; if (!p) return;
-      const nH = houseOf(p.longitude, natalHouses.cusps);
-      const r = p.retrograde ? ' (R)' : '';
-      L.push(`${PLANET_NAMES[k]}: ${fmtDeg(p.longitude)}, нат.дом ${nH}${r}`);
-    });
+    // Транзитные Парс Фортуны
+    // Локальные дома для транзитов (по городу транзита)
+    let transitHouses = null;
+    let hasLocalHouses = false;
+    if (!isNaN(tLat) && !isNaN(tLon) && tLat && tLon) {
+      transitHouses = calcAllHouses(jdTransit, tLat, tLon);
+      hasLocalHouses = true;
+      transitPos.asc = { longitude: transitHouses.asc, isAngle: true };
+      transitPos.mc = { longitude: transitHouses.mc, isAngle: true };
+      transitPos.vertex = { longitude: transitHouses.vertex, isAngle: true };
+      // Транзитный Парс Фортуны
+      if (transitPos.sun && transitPos.moon) {
+        const tSunH = houseOf(transitPos.sun.longitude, transitHouses.cusps);
+        const tIsDay = tSunH >= 7 && tSunH <= 12;
+        transitPos.pars_fortuna = { longitude: tIsDay ? norm(transitHouses.asc + transitPos.moon.longitude - transitPos.sun.longitude) : norm(transitHouses.asc + transitPos.sun.longitude - transitPos.moon.longitude), retrograde: false, speed: 0 };
+      }
+    }
 
     // Кросс-аспекты
     const crossAsp = calcCrossAspects(transitPos, natalPos);
 
-    L.push(''); L.push('────────── КРОСС-АСПЕКТЫ (ТРАНЗИТ → НАТАЛ) ──────────'); L.push('');
-    if (!crossAsp.length) L.push('Точных аспектов нет');
-    else crossAsp.forEach(a => {
-      const tName = PLANET_NAMES[a.transit] || a.transit;
-      const nName = PLANET_NAMES[a.natal] || a.natal;
-      const nH = natalPos[a.natal] ? houseOf(natalPos[a.natal].longitude, natalHouses.cusps) : '';
-      const hStr = nH ? ' (нат.дом ' + nH + ')' : '';
-      L.push(`${tName} (Т) ${a.type} ${nName} (Н)${hStr} (орб ${a.orb}°)`);
+    // ── Рендер: таблица сопоставления ──
+    renderComparisonTable(natalPos, transitPos, natalHouses, transitHouses, hasLocalHouses);
+    renderAspectsTable(crossAsp, natalPos, natalHouses);
+    renderHousesBlock(natalHouses, transitHouses, hasLocalHouses, birthCityVal, transitCityVal);
+    renderTextOutput(natalPos, transitPos, natalHouses, transitHouses, hasLocalHouses, crossAsp, {
+      nameVal, gender, bDate, bTime, tDate, tTime,
+      birthTzAbbr: uBirth.tzAbbr, transitTzAbbr: uTransit.tzAbbr,
+      birthCityVal, transitCityVal
     });
 
-    L.push(''); L.push('══════════════════════════════════════');
-
-    document.getElementById('output').value = L.join('\n');
     document.getElementById('resultBlock').style.display = 'block';
   } catch(e) {
     console.error(e);
@@ -419,6 +500,221 @@ window.calc = function() {
     btn.disabled = false; btn.textContent = 'РАССЧИТАТЬ';
   }
 };
+
+// ── Рендер: таблица-сопоставление (как на геокульт) ──
+function renderComparisonTable(natalPos, transitPos, natalHouses, transitHouses, hasLocal) {
+  const el = document.getElementById('comparisonTable');
+  const allKeys = [...PLANET_ORDER, 'pars_fortuna', 'vertex'];
+
+  let html = `<table class="result-table">
+    <tr>
+      <th></th>
+      <th colspan="2" class="col-transit">Транзит</th>
+      <th colspan="2" class="col-natal">Натал</th>
+    </tr>
+    <tr>
+      <th>Планета</th>
+      <th class="col-transit">Положение</th>
+      <th class="col-transit">${hasLocal ? 'Лок.дом' : 'Нат.дом'}</th>
+      <th class="col-natal">Положение</th>
+      <th class="col-natal">Дом</th>
+    </tr>`;
+
+  for (const k of allKeys) {
+    const tp = transitPos[k];
+    const np = natalPos[k];
+    if (!tp && !np) continue;
+
+    const name = PLANET_NAMES[k] || k;
+
+    // Transit
+    let tDeg = '—', tHouse = '—', tRetro = '';
+    if (tp && !isNaN(tp.longitude)) {
+      tDeg = fmtDegShort(tp.longitude);
+      if (tp.retrograde) tRetro = ' <span class="retro">R</span>';
+      if (hasLocal && transitHouses) {
+        tHouse = houseOf(tp.longitude, transitHouses.cusps);
+      } else if (natalHouses) {
+        tHouse = houseOf(tp.longitude, natalHouses.cusps);
+      }
+    }
+
+    // Natal
+    let nDeg = '—', nHouse = '—', nRetro = '';
+    if (np && !isNaN(np.longitude)) {
+      nDeg = fmtDegShort(np.longitude);
+      if (np.retrograde) nRetro = ' <span class="retro">R</span>';
+      if (natalHouses) nHouse = houseOf(np.longitude, natalHouses.cusps);
+    }
+
+    html += `<tr>
+      <td>${name}</td>
+      <td class="col-transit">${tDeg}${tRetro}</td>
+      <td class="col-transit">${tHouse}</td>
+      <td class="col-natal">${nDeg}${nRetro}</td>
+      <td class="col-natal">${nHouse}</td>
+    </tr>`;
+  }
+
+  // Углы
+  const angles = [
+    { key: 'asc', label: 'AC (Асц)' },
+    { key: 'mc', label: 'MC (Сер.Неба)' },
+  ];
+  html += `<tr><td colspan="5" class="tbl-section">Углы</td></tr>`;
+  for (const a of angles) {
+    const tp = transitPos[a.key];
+    const np = natalPos[a.key];
+    let tDeg = '—', nDeg = '—';
+    if (tp && !isNaN(tp.longitude)) tDeg = fmtDegShort(tp.longitude);
+    if (np && !isNaN(np.longitude)) nDeg = fmtDegShort(np.longitude);
+    html += `<tr>
+      <td>${a.label}</td>
+      <td class="col-transit">${hasLocal ? tDeg : '—'}</td>
+      <td class="col-transit">—</td>
+      <td class="col-natal">${nDeg}</td>
+      <td class="col-natal">—</td>
+    </tr>`;
+  }
+
+  html += `</table>`;
+  el.innerHTML = html;
+}
+
+// ── Рендер: таблица аспектов ──
+function renderAspectsTable(crossAsp, natalPos, natalHouses) {
+  const el = document.getElementById('aspectsTable');
+  if (!crossAsp.length) {
+    el.innerHTML = '<p style="padding:20px;color:#666;font-family:IBM Plex Mono,monospace;font-size:12px;">Аспектов с орбом ≤3° не обнаружено.</p>';
+    return;
+  }
+
+  let html = `<table class="result-table">
+    <tr>
+      <th>Транзит</th>
+      <th></th>
+      <th>Аспект</th>
+      <th></th>
+      <th>Натал</th>
+      <th>Нат.дом</th>
+      <th>Орб</th>
+    </tr>`;
+
+  for (const a of crossAsp) {
+    const tName = PLANET_NAMES[a.transit] || a.transit;
+    const nName = PLANET_NAMES[a.natal] || a.natal;
+    const nH = natalPos[a.natal] ? houseOf(natalPos[a.natal].longitude, natalHouses.cusps) : '—';
+    html += `<tr>
+      <td class="col-transit">${tName}</td>
+      <td style="font-size:16px;">${a.sym}</td>
+      <td class="col-aspect">${a.type}</td>
+      <td style="font-size:16px;">${a.sym}</td>
+      <td class="col-natal">${nName}</td>
+      <td>${nH}</td>
+      <td class="orb">${a.orb}°</td>
+    </tr>`;
+  }
+  html += `</table>`;
+  el.innerHTML = html;
+}
+
+// ── Рендер: дома ──
+function renderHousesBlock(natalHouses, transitHouses, hasLocal, birthCity, transitCity) {
+  const el = document.getElementById('housesBlock');
+  let html = '<div class="houses-grid">';
+
+  // Натальные дома
+  html += '<div class="houses-col"><div class="houses-col-title col-natal">Натальные дома' + (birthCity ? ' (' + esc(birthCity) + ')' : '') + '</div><table>';
+  for (let i = 0; i < 12; i++) {
+    const label = i === 0 ? '1 (AC)' : i === 9 ? '10 (MC)' : String(i + 1);
+    html += `<tr><td>${label}</td><td>${fmtDeg(natalHouses.cusps[i])}</td></tr>`;
+  }
+  html += '</table></div>';
+
+  // Локальные дома
+  if (hasLocal && transitHouses) {
+    html += '<div class="houses-col"><div class="houses-col-title col-transit">Локальные дома' + (transitCity ? ' (' + esc(transitCity) + ')' : '') + '</div><table>';
+    for (let i = 0; i < 12; i++) {
+      const label = i === 0 ? '1 (AC)' : i === 9 ? '10 (MC)' : String(i + 1);
+      html += `<tr><td>${label}</td><td>${fmtDeg(transitHouses.cusps[i])}</td></tr>`;
+    }
+    html += '</table></div>';
+  } else {
+    html += '<div class="houses-col"><div class="houses-col-title col-transit">Локальные дома</div><p style="padding:12px 8px;color:#555;font-size:11px;">Укажите город транзита для расчёта локальных домов.</p></div>';
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ── Рендер: текстовый вывод ──
+function renderTextOutput(natalPos, transitPos, natalHouses, transitHouses, hasLocal, crossAsp, info) {
+  const L = [];
+  L.push('══════════ НАТАЛ + ТРАНЗИТЫ ══════════');
+  L.push('');
+  if (info.nameVal) L.push('Имя: ' + info.nameVal);
+  if (info.gender) L.push('Пол: ' + info.gender);
+  L.push('Дата рождения: ' + info.bDate + ', ' + info.bTime + ' (' + info.birthTzAbbr + ')' + (info.birthCityVal ? ', ' + info.birthCityVal : ''));
+  L.push('Дата транзита: ' + info.tDate + ', ' + info.tTime + ' (' + info.transitTzAbbr + ')' + (info.transitCityVal ? ', ' + info.transitCityVal : ''));
+
+  // Сопоставление
+  L.push(''); L.push('────────── СОПОСТАВЛЕНИЕ ──────────'); L.push('');
+  const hdr = hasLocal
+    ? 'Планета          | Транзит              Лок. | Натал                Дом'
+    : 'Планета          | Транзит              Н.дом | Натал                Дом';
+  L.push(hdr);
+  L.push('-'.repeat(hdr.length));
+
+  const allKeys = [...PLANET_ORDER, 'pars_fortuna', 'vertex'];
+  for (const k of allKeys) {
+    const tp = transitPos[k]; const np = natalPos[k];
+    if (!tp && !np) continue;
+    const name = (PLANET_NAMES_FULL[k] || k).padEnd(17);
+    let tStr = '—', tH = '—';
+    if (tp && !isNaN(tp.longitude)) {
+      tStr = fmtDeg(tp.longitude) + (tp.retrograde ? ' R' : '');
+      if (hasLocal && transitHouses) tH = String(houseOf(tp.longitude, transitHouses.cusps));
+      else tH = String(houseOf(tp.longitude, natalHouses.cusps));
+    }
+    let nStr = '—', nH = '—';
+    if (np && !isNaN(np.longitude)) {
+      nStr = fmtDeg(np.longitude) + (np.retrograde ? ' R' : '');
+      nH = String(houseOf(np.longitude, natalHouses.cusps));
+    }
+    L.push(`${name}| ${tStr.padEnd(21)}${tH.padEnd(5)} | ${nStr.padEnd(21)}${nH}`);
+  }
+
+  // Аспекты
+  L.push(''); L.push('────────── КРОСС-АСПЕКТЫ (ТРАНЗИТ → НАТАЛ, ≤3°) ──────────'); L.push('');
+  if (!crossAsp.length) L.push('Аспектов не обнаружено');
+  else crossAsp.forEach(a => {
+    const tName = PLANET_NAMES_FULL[a.transit] || a.transit;
+    const nName = PLANET_NAMES_FULL[a.natal] || a.natal;
+    const nH = natalPos[a.natal] ? houseOf(natalPos[a.natal].longitude, natalHouses.cusps) : '';
+    const hStr = nH ? ' (нат.дом ' + nH + ')' : '';
+    L.push(`${tName} (Т) ${a.sym} ${a.type} ${nName} (Н)${hStr} — орб ${a.orb}°`);
+  });
+
+  // Дома
+  L.push(''); L.push('────────── НАТАЛЬНЫЕ ДОМА ──────────'); L.push('');
+  for (let i = 0; i < 12; i++) {
+    const label = i === 0 ? '1 (AC)' : i === 9 ? '10 (MC)' : String(i+1);
+    L.push(`${label.padEnd(8)} ${fmtDeg(natalHouses.cusps[i])}`);
+  }
+  if (hasLocal && transitHouses) {
+    L.push(''); L.push('────────── ЛОКАЛЬНЫЕ ДОМА (ТРАНЗИТ) ──────────'); L.push('');
+    for (let i = 0; i < 12; i++) {
+      const label = i === 0 ? '1 (AC)' : i === 9 ? '10 (MC)' : String(i+1);
+      L.push(`${label.padEnd(8)} ${fmtDeg(transitHouses.cusps[i])}`);
+    }
+  }
+
+  L.push(''); L.push('══════════════════════════════════════');
+
+  document.getElementById('output').value = L.join('\n');
+}
 
 window.copyText = function() {
   const ta = document.getElementById('output');
@@ -430,6 +726,7 @@ window.copyText = function() {
   });
 };
 
+// ── Поиск города (универсальный) ──
 function setupCitySearch(inputId, latId, lonId, tzId) {
   const input = document.getElementById(inputId);
   let tid;
@@ -463,7 +760,9 @@ function setupCitySearch(inputId, latId, lonId, tzId) {
 }
 function closeAllLists() { document.querySelectorAll('.autocomplete-items').forEach(el => el.remove()); }
 document.addEventListener('click', closeAllLists);
+
 setupCitySearch('birthCity', 'birthLat', 'birthLon', 'birthTz');
+setupCitySearch('transitCity', 'transitLat', 'transitLon', 'transitTz');
 
 initSWE();
 </script>
