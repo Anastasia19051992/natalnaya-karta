@@ -164,37 +164,19 @@
 <div class="wrap" id="resultBlock" style="display:none;">
   <div class="out-wrap">
 
-    <!-- Tabs -->
-    <div class="tabs">
-      <div class="tab active" data-tab="tabTable">Сопоставление</div>
-      <div class="tab" data-tab="tabAspects">Аспекты</div>
-      <div class="tab" data-tab="tabHouses">Дома</div>
-      <div class="tab" data-tab="tabText">Текст</div>
-    </div>
+    <!-- Diagnostic info bar -->
+    <div id="diagBar" style="padding:14px 0 10px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:#555;line-height:1.8;border-bottom:1px solid #1a1a18;margin-bottom:12px;"></div>
 
-    <!-- Tab: Table -->
-    <div class="tab-content active" id="tabTable">
-      <div class="scroll-x" id="comparisonTable"></div>
+    <div class="out-head">
+      <span class="out-title">Полный вывод</span>
+      <button class="copy-btn" id="copyBtn" onclick="window.copyText()">⎘ Копировать</button>
     </div>
+    <textarea id="output" rows="55" readonly></textarea>
 
-    <!-- Tab: Aspects -->
-    <div class="tab-content" id="tabAspects">
-      <div class="scroll-x" id="aspectsTable"></div>
-    </div>
-
-    <!-- Tab: Houses -->
-    <div class="tab-content" id="tabHouses">
-      <div id="housesBlock"></div>
-    </div>
-
-    <!-- Tab: Text -->
-    <div class="tab-content" id="tabText">
-      <div class="out-head" style="margin-top:16px;">
-        <span class="out-title">Полный вывод</span>
-        <button class="copy-btn" id="copyBtn" onclick="window.copyText()">⎘ Копировать</button>
-      </div>
-      <textarea id="output" rows="55" readonly></textarea>
-    </div>
+    <!-- hidden containers for render functions (not displayed) -->
+    <div id="comparisonTable" style="display:none;"></div>
+    <div id="aspectsTable" style="display:none;"></div>
+    <div id="housesBlock" style="display:none;"></div>
 
   </div>
 </div>
@@ -397,15 +379,7 @@ async function initSWE() {
 
 document.getElementById('transitDate').value = new Date().toISOString().split('T')[0];
 
-// ── Tabs ──
-document.querySelectorAll('.tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById(tab.dataset.tab).classList.add('active');
-  });
-});
+// (tabs removed — text-only output)
 
 // ── РАСЧЁТ ──
 window.calc = function() {
@@ -489,10 +463,21 @@ window.calc = function() {
     renderTextOutput(natalPos, transitPos, natalHouses, transitHouses, hasLocalHouses, crossAsp, {
       nameVal, gender, bDate, bTime, tDate, tTime,
       birthTzAbbr: uBirth.tzAbbr, transitTzAbbr: uTransit.tzAbbr,
-      birthCityVal, transitCityVal
+      birthCityVal, transitCityVal,
+      bLat, bLon, tLat, tLon, bTz, tTz,
+      uBirth, uTransit, jdBirth, jdTransit
     });
 
     document.getElementById('resultBlock').style.display = 'block';
+
+    // Diagnostic bar
+    const dBar = document.getElementById('diagBar');
+    const ub = uBirth, ut = uTransit;
+    dBar.innerHTML = [
+      `<b>НАТАЛ:</b> ${bDate} ${bTime} | пояс: ${bTz} → ${ub.tzAbbr} (UTC${ub.utcOffset>=0?'+':''}${ub.utcOffset}) | UTC: ${ub.year}-${String(ub.month).padStart(2,'0')}-${String(ub.day).padStart(2,'0')} ${String(ub.hour).padStart(2,'0')}:${String(ub.minute).padStart(2,'0')} | JD: ${jdBirth.toFixed(4)} | ${bLat.toFixed(4)}°N ${bLon.toFixed(4)}°E`,
+      `<b>ТРАНЗИТ:</b> ${tDate} ${tTime} | пояс: ${tTz} → ${ut.tzAbbr} (UTC${ut.utcOffset>=0?'+':''}${ut.utcOffset}) | UTC: ${ut.year}-${String(ut.month).padStart(2,'0')}-${String(ut.day).padStart(2,'0')} ${String(ut.hour).padStart(2,'0')}:${String(ut.minute).padStart(2,'0')} | JD: ${jdTransit.toFixed(4)} | ${!isNaN(tLat) ? tLat.toFixed(4)+'°N '+tLon.toFixed(4)+'°E' : '—'}`,
+      `<b>AC натал:</b> ${fmtDeg(natalHouses.asc)} | <b>MC натал:</b> ${fmtDeg(natalHouses.mc)}` + (hasLocalHouses ? ` | <b>AC локал:</b> ${fmtDeg(transitHouses.asc)} | <b>MC локал:</b> ${fmtDeg(transitHouses.mc)}` : ''),
+    ].join('<br>');
   } catch(e) {
     console.error(e);
     errEl.textContent = e.message;
@@ -712,6 +697,32 @@ function renderTextOutput(natalPos, transitPos, natalHouses, transitHouses, hasL
   }
 
   L.push(''); L.push('══════════════════════════════════════');
+
+  // ── Диагностика ──
+  if (info.uBirth || info.bLat) {
+    L.push('');
+    L.push('────────── ДИАГНОСТИКА ──────────');
+    L.push('');
+    if (info.uBirth) {
+      const u = info.uBirth;
+      L.push(`Натал: ввод ${info.bDate} ${info.bTime}, пояс "${info.bTz}" → ${info.birthTzAbbr} (UTC${u.utcOffset >= 0 ? '+' : ''}${u.utcOffset})`);
+      L.push(`  UTC: ${u.year}-${String(u.month).padStart(2,'0')}-${String(u.day).padStart(2,'0')} ${String(u.hour).padStart(2,'0')}:${String(u.minute).padStart(2,'0')}:${String(u.second).padStart(2,'0')}`);
+      L.push(`  JD: ${info.jdBirth ? info.jdBirth.toFixed(6) : '?'}`);
+    }
+    if (!isNaN(info.bLat)) L.push(`  Координаты: ${info.bLat}°N, ${info.bLon}°E` + (info.birthCityVal ? ` (${info.birthCityVal})` : ''));
+    if (info.uTransit) {
+      const u = info.uTransit;
+      L.push(`Транзит: ввод ${info.tDate} ${info.tTime}, пояс "${info.tTz}" → ${info.transitTzAbbr} (UTC${u.utcOffset >= 0 ? '+' : ''}${u.utcOffset})`);
+      L.push(`  UTC: ${u.year}-${String(u.month).padStart(2,'0')}-${String(u.day).padStart(2,'0')} ${String(u.hour).padStart(2,'0')}:${String(u.minute).padStart(2,'0')}:${String(u.second).padStart(2,'0')}`);
+      L.push(`  JD: ${info.jdTransit ? info.jdTransit.toFixed(6) : '?'}`);
+    }
+    if (!isNaN(info.tLat)) L.push(`  Координаты: ${info.tLat}°N, ${info.tLon}°E` + (info.transitCityVal ? ` (${info.transitCityVal})` : ''));
+    L.push('');
+    L.push(`Натал AC: ${fmtDeg(natalHouses.asc)}, MC: ${fmtDeg(natalHouses.mc)}`);
+    if (hasLocal && transitHouses) {
+      L.push(`Локал AC: ${fmtDeg(transitHouses.asc)}, MC: ${fmtDeg(transitHouses.mc)}`);
+    }
+  }
 
   document.getElementById('output').value = L.join('\n');
 }
