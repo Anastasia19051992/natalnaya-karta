@@ -173,10 +173,24 @@
         <div><label>Начало периода</label><input type="date" id="periodStart"></div>
         <div><label>Конец периода</label><input type="date" id="periodEnd"></div>
       </div>
-      <div style="margin-top:10px;">
-        <label style="display:flex; align-items:center; color:#e5e1d5; font-size:13px; cursor:pointer; font-family:'IBM Plex Mono',monospace;">
-          <input type="checkbox" id="excludeMoon" style="width:auto; margin-right:8px;"> Без транзитной Луны (для длинных периодов)
-        </label>
+      <div style="margin-top:12px;">
+        <input type="checkbox" id="excludeMoon" style="display:none;">
+        <div id="moonToggle" onclick="document.getElementById('excludeMoon').checked=!document.getElementById('excludeMoon').checked; this.classList.toggle('active')" style="
+          display:flex; align-items:center; justify-content:center; gap:8px;
+          width:100%; padding:12px 20px;
+          background:#1a1a18; border:1px solid #2a2a26; border-radius:4px;
+          color:#777; font-family:'IBM Plex Mono',monospace; font-size:13px;
+          cursor:pointer; transition:all .2s; user-select:none;
+        ">
+          <span id="moonCheck" style="display:inline-block;width:18px;height:18px;border:1.5px solid #555;border-radius:3px;text-align:center;line-height:16px;font-size:13px;transition:all .2s;flex-shrink:0;"></span>
+          Без транзитной Луны
+        </div>
+        <style>
+          #moonToggle:hover { border-color:#c9956b; color:#bbb8ac; }
+          #moonToggle.active { border-color:#c9956b; color:#e5e1d5; background:#1f1d18; }
+          #moonToggle.active #moonCheck { border-color:#c9956b; background:#c9956b; color:#111; }
+          #moonToggle.active #moonCheck::after { content:'✓'; }
+        </style>
       </div>
     </div>
   </div>
@@ -277,14 +291,23 @@ const PLANET_ORDER = [
 ];
 
 const ASPECT_DEFS = [
-  { name: 'Соединение', sym: '☌', angle: 0,   orb: 3 },
+  { name: 'Соединение', sym: '☌', angle: 0,   orb: 1.5 },
   { name: 'Полусекстиль', sym: '⚺', angle: 30, orb: 1 },
-  { name: 'Секстиль',   sym: '⚹', angle: 60,  orb: 3 },
-  { name: 'Квадратура',  sym: '□', angle: 90,  orb: 3 },
-  { name: 'Тригон',      sym: '△', angle: 120, orb: 3 },
-  { name: 'Квиконс',     sym: '⚻', angle: 150, orb: 2 },
-  { name: 'Оппозиция',   sym: '☍', angle: 180, orb: 3 },
+  { name: 'Секстиль',   sym: '⚹', angle: 60,  orb: 1.5 },
+  { name: 'Квадратура',  sym: '□', angle: 90,  orb: 1.5 },
+  { name: 'Тригон',      sym: '△', angle: 120, orb: 1.5 },
+  { name: 'Квиконс',     sym: '⚻', angle: 150, orb: 1 },
+  { name: 'Оппозиция',   sym: '☍', angle: 180, orb: 1.5 },
 ];
+
+// Множитель орба по скорости транзитной планеты
+// Медленные получают больший орб, быстрые — стандартный
+const ORB_MULTIPLIER = {
+  pluto: 2.5, neptune: 2.5, uranus: 2.2,
+  chiron: 1.8, saturn: 1.8, jupiter: 1.6,
+  mars: 1.0, venus: 1.0, sun: 1.0, mercury: 1.0, moon: 0.8,
+  north_node: 1.5, south_node: 1.5, lilith: 1.2, selena: 1.2
+};
 
 function norm(d) { let r = d % 360; return r < 0 ? r + 360 : r; }
 
@@ -382,7 +405,7 @@ function localToUTC(year, month, day, hour, minute, tz) {
   return { year: u.year(), month: u.month()+1, day: u.date(), hour: u.hour(), minute: u.minute(), second: u.second(), utcOffset: off, tzAbbr: abbr };
 }
 
-// ── Кросс-аспекты: транзит → натал, макс 3° ──
+// ── Кросс-аспекты: транзит → натал, орб зависит от скорости планеты ──
 function calcCrossAspects(transitPos, natalPos) {
   const result = [];
   const tKeys = PLANET_ORDER;
@@ -390,13 +413,15 @@ function calcCrossAspects(transitPos, natalPos) {
 
   for (const tk of tKeys) {
     if (!transitPos[tk] || isNaN(transitPos[tk].longitude)) continue;
+    const mult = ORB_MULTIPLIER[tk] || 1.0;
     for (const nk of nKeys) {
       if (!natalPos[nk] || isNaN(natalPos[nk].longitude)) continue;
       let d = Math.abs(transitPos[tk].longitude - natalPos[nk].longitude);
       if (d > 180) d = 360 - d;
       for (const a of ASPECT_DEFS) {
+        const effectiveOrb = a.orb * mult;
         const o = Math.abs(d - a.angle);
-        if (o <= a.orb) {
+        if (o <= effectiveOrb) {
           result.push({ transit: tk, natal: nk, type: a.name, sym: a.sym, orb: o.toFixed(2), orbNum: o });
         }
       }
