@@ -739,35 +739,41 @@ window.calculateSolar = function() {
     if (!cuspsAsp.length) L.push('Аспектов осей не обнаружено');
     else cuspsAsp.forEach(a => L.push(`${a.solarAngle} ${a.type} ${a.natalPoint} (орб ${a.orb}°)`));
 
-    // === ВЫВОД ЛУНАЦИЙ И СТАНЦИЙ ===
+    // === ВЫВОД ЛУНАЦИЙ И СТАНЦИЙ (только значимые) ===
     const solarStartStr = formatJDLocal(jdSolar, sTz);
     const solarEndStr = formatJDLocal(jdSolarNext, sTz);
-    L.push(''); L.push(`────────── ЛУНАЦИИ И ЗАТМЕНИЯ (${solarStartStr} – ${solarEndStr}) ──────────`); L.push('');
-    if (!lunations.length) L.push('Нет данных');
-    else lunations.forEach(l => {
+    L.push(''); L.push(`────────── ЗНАЧИМЫЕ ЛУНАЦИИ И ЗАТМЕНИЯ (${solarStartStr} – ${solarEndStr}) ──────────`); L.push('');
+    let lunCount = 0;
+    lunations.forEach(l => {
+      let conjs = getNatalConjunctions(l.deg, 5);
+      let isEclipse = l.type.includes('затмение');
+      if (!conjs && !isEclipse) return; // пропускаем незначимые
       let dStr = formatJDLocal(l.jd, sTz);
       let signInfo = degToSign(l.deg);
       let degStr = `${signInfo.degree}\u00B0${String(signInfo.minute).padStart(2,'0')}' ${signInfo.sign}`;
       let hNum = houseOf(l.deg, natalHouses.cusps);
-      let conjs = getNatalConjunctions(l.deg, 5);
       let txt = `${dStr}  ${l.type.padEnd(15)} ${degStr.padEnd(14)} Н-Дом ${hNum}`;
       if (conjs) txt += `  Соед: ${conjs}`;
       L.push(txt);
+      lunCount++;
     });
+    if (!lunCount) L.push('Значимых лунаций не обнаружено');
 
-    L.push(''); L.push(`────────── СТАНЦИИ ПЛАНЕТ (${solarStartStr} – ${solarEndStr}) ──────────`); L.push('');
-    if (!stations.length) L.push('Нет данных');
-    else stations.forEach(s => {
+    L.push(''); L.push(`────────── ЗНАЧИМЫЕ СТАНЦИИ ПЛАНЕТ (${solarStartStr} – ${solarEndStr}) ──────────`); L.push('');
+    let stCount = 0;
+    stations.forEach(s => {
+      let conjs = getNatalConjunctions(s.deg, 5);
+      if (!conjs) return; // пропускаем станции без соединений
       let dStr = formatJDLocal(s.jd, sTz);
       let signInfo = degToSign(s.deg);
       let degStr = `${signInfo.degree}\u00B0${String(signInfo.minute).padStart(2,'0')}' ${signInfo.sign}`;
       let hNum = houseOf(s.deg, natalHouses.cusps);
-      let conjs = getNatalConjunctions(s.deg, 5);
       let pName = s.planet.length > 9 ? s.planet.substring(0,9)+'.' : s.planet;
-      let txt = `${dStr}  ${pName.padEnd(10)} ${s.type}  ${degStr.padEnd(14)} Н-Дом ${hNum}`;
-      if (conjs) txt += `  Соед: ${conjs}`;
+      let txt = `${dStr}  ${pName.padEnd(10)} ${s.type}  ${degStr.padEnd(14)} Н-Дом ${hNum}  Соед: ${conjs}`;
       L.push(txt);
+      stCount++;
     });
+    if (!stCount) L.push('Значимых станций не обнаружено');
     // === КОНЕЦ ВЫВОДА ===
 
     // === ПИКОВЫЕ ТРАНЗИТЫ СОЛЯРНОГО ГОДА ===
