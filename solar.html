@@ -894,7 +894,7 @@ window.calculateSolar = function() {
       L.push('Точные аспекты медленных планет к натальной карте:');
       L.push('');
       completedTransits.forEach(t => {
-        let peakStr = formatJDLocal(t.peakJd, sTz);
+        let peakStr = formatJDLocal(t.peakJd, sTz).substring(0, 10);
         let startStr = formatJDLocal(t.startJd, sTz).substring(0, 10);
         let endStr = formatJDLocal(t.endJd, sTz).substring(0, 10);
         let tName = PLANET_NAMES[t.transit] || t.transit;
