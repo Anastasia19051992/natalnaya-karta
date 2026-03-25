@@ -891,8 +891,13 @@ window.calculateSolar = function() {
     if (!completedTransits.length) {
       L.push('Мажорных транзитов медленных планет (орб \u22641\u00B0) не обнаружено.');
     } else {
-      L.push('Точные аспекты медленных планет к натальной карте:');
-      L.push('');
+      const ASPECT_TEXT_SOLAR = {
+        'Соединение': 'в соединении с',
+        'Секстиль': 'в секстиле с',
+        'Квадратура': 'в квадрате с',
+        'Тригон': 'в тригоне с',
+        'Оппозиция': 'в оппозиции с'
+      };
       completedTransits.forEach(t => {
         let peakStr = formatJDLocal(t.peakJd, sTz).substring(0, 10);
         let startStr = formatJDLocal(t.startJd, sTz).substring(0, 10);
@@ -902,11 +907,17 @@ window.calculateSolar = function() {
         let retro = t.peakRetro ? ' (R)' : '';
         let nLon = (t.natal === 'asc') ? natalHouses.asc : (t.natal === 'mc') ? natalHouses.mc : (natalPos[t.natal] ? natalPos[t.natal].longitude : NaN);
         let nH = !isNaN(nLon) ? houseOf(nLon, natalHouses.cusps) : '\u2014';
-        let tH = houseOf(t.peakLon, natalHouses.cusps);
-        let orbStr = t.minOrb < 0.01 ? '0\u00B000\'' : `0\u00B0${String(Math.round(t.minOrb * 60)).padStart(2,'0')}'`;
+        let nDegStr = !isNaN(nLon) ? fmtDeg(nLon) : '';
+        let aspText = ASPECT_TEXT_SOLAR[t.type] || t.type;
+        let orbVal = t.minOrb.toFixed(2);
 
-        let txt = `${peakStr}  ${tName}${retro} ${t.type} нат.${nName} (дом ${nH})  орб ${orbStr}  тр.дом ${tH}  [${startStr}\u2013${endStr}]`;
-        L.push(txt);
+        L.push(`тр. ${tName}${retro} ${aspText} нат. ${nName} (${nDegStr}, дом ${nH})`);
+        if (startStr === endStr) {
+          L.push(`   ${startStr} | ПИК: ${peakStr} | орб ${orbVal}\u00B0`);
+        } else {
+          L.push(`   С ${startStr} по ${endStr} | ПИК: ${peakStr} | орб ${orbVal}\u00B0`);
+        }
+        L.push('──────────────────────────────────────────');
       });
     }
     // === КОНЕЦ ПИКОВЫХ ТРАНЗИТОВ ===
