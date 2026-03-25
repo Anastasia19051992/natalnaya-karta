@@ -777,17 +777,16 @@ window.calculateSolar = function() {
     // === КОНЕЦ ВЫВОДА ===
 
     // === ПИКОВЫЕ ТРАНЗИТЫ СОЛЯРНОГО ГОДА ===
-    const slowTransits = ['jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'north_node', 'chiron'];
+    const slowTransits = ['jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
     const majorAspects = [
       { name: 'Соединение', angle: 0, orb: 1 },
-      { name: 'Секстиль', angle: 60, orb: 1 },
       { name: 'Квадратура', angle: 90, orb: 1 },
       { name: 'Тригон', angle: 120, orb: 1 },
       { name: 'Оппозиция', angle: 180, orb: 1 }
     ];
     const transitPeriods = {};
     const completedTransits = [];
-    const transitNatalKeys = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'north_node'];
+    const transitNatalKeys = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
     const transitNatalTargets = [];
     transitNatalKeys.forEach(k => {
       if (natalPos[k] && !isNaN(natalPos[k].longitude)) {
