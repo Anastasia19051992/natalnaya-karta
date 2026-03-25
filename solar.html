@@ -587,7 +587,7 @@ window.calculateSolar = function() {
 
     // --- 2. СТАНЦИИ ПЛАНЕТ ---
     const stations = [];
-    const stationBodies = ['mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto'];
+    const stationBodies = ['venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'chiron'];
     for (let bName of stationBodies) {
       let bCode = SE_BODIES[bName];
       let planetRu = PLANET_NAMES[bName] || bName;
@@ -749,7 +749,7 @@ window.calculateSolar = function() {
       let signInfo = degToSign(l.deg);
       let degStr = `${signInfo.degree}\u00B0${String(signInfo.minute).padStart(2,'0')}' ${signInfo.sign}`;
       let hNum = houseOf(l.deg, natalHouses.cusps);
-      let conjs = getNatalConjunctions(l.deg, 2);
+      let conjs = getNatalConjunctions(l.deg, 5);
       let txt = `${dStr}  ${l.type.padEnd(15)} ${degStr.padEnd(14)} Н-Дом ${hNum}`;
       if (conjs) txt += `  Соед: ${conjs}`;
       L.push(txt);
@@ -762,7 +762,7 @@ window.calculateSolar = function() {
       let signInfo = degToSign(s.deg);
       let degStr = `${signInfo.degree}\u00B0${String(signInfo.minute).padStart(2,'0')}' ${signInfo.sign}`;
       let hNum = houseOf(s.deg, natalHouses.cusps);
-      let conjs = getNatalConjunctions(s.deg, 2);
+      let conjs = getNatalConjunctions(s.deg, 5);
       let pName = s.planet.length > 9 ? s.planet.substring(0,9)+'.' : s.planet;
       let txt = `${dStr}  ${pName.padEnd(10)} ${s.type}  ${degStr.padEnd(14)} Н-Дом ${hNum}`;
       if (conjs) txt += `  Соед: ${conjs}`;
@@ -782,7 +782,6 @@ window.calculateSolar = function() {
     const transitPeriods = {};
     const completedTransits = [];
     const transitNatalKeys = ['sun', 'moon', 'mercury', 'venus', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'north_node'];
-    // Добавляем ASC/MC как цели
     const transitNatalTargets = [];
     transitNatalKeys.forEach(k => {
       if (natalPos[k] && !isNaN(natalPos[k].longitude)) {
@@ -791,6 +790,32 @@ window.calculateSolar = function() {
     });
     if (!isNaN(natalHouses.asc)) transitNatalTargets.push({ key: 'asc', lon: natalHouses.asc });
     if (!isNaN(natalHouses.mc)) transitNatalTargets.push({ key: 'mc', lon: natalHouses.mc });
+
+    // Функция: орб аспекта между транзитной долготой и натальной точкой
+    function aspectOrb(tLon, nLon, aspectAngle) {
+      let d = Math.abs(tLon - nLon);
+      if (d > 180) d = 360 - d;
+      return Math.abs(d - aspectAngle);
+    }
+
+    // Функция: бисекция для нахождения точного пика (минимальный орб) между двумя днями
+    function refinePeak(bCode, nLon, aspectAngle, jdA, jdB) {
+      // Метод тернарного поиска минимума орба на интервале [jdA, jdB]
+      let lo = jdA, hi = jdB;
+      for (let i = 0; i < 25; i++) {
+        let m1 = lo + (hi - lo) / 3;
+        let m2 = hi - (hi - lo) / 3;
+        let o1 = aspectOrb(norm(sweCalcUt(m1, bCode)[0]), nLon, aspectAngle);
+        let o2 = aspectOrb(norm(sweCalcUt(m2, bCode)[0]), nLon, aspectAngle);
+        if (o1 < o2) hi = m2; else lo = m1;
+      }
+      let bestJd = (lo + hi) / 2;
+      let bestData = sweCalcUt(bestJd, bCode);
+      let bestLon = norm(bestData[0]);
+      let bestOrb = aspectOrb(bestLon, nLon, aspectAngle);
+      let bestSpeed = bestData[3] || 0;
+      return { jd: bestJd, lon: bestLon, orb: bestOrb, retro: bestSpeed < 0 };
+    }
 
     // Сканируем солярный год с шагом 1 день
     const transitDays = Math.round(jdYearEnd - jdYearStart) + 1;
@@ -806,19 +831,18 @@ window.calculateSolar = function() {
         let tSpeed = tData[3] || 0;
 
         for (let nt of transitNatalTargets) {
-          let d = Math.abs(tLon - nt.lon);
-          if (d > 180) d = 360 - d;
-
           for (let a of majorAspects) {
-            let o = Math.abs(d - a.angle);
+            let o = aspectOrb(tLon, nt.lon, a.angle);
             if (o <= a.orb) {
               let aspectId = `${tk}_${a.name}_${nt.key}`;
               todaysKeys.add(aspectId);
 
               if (!transitPeriods[aspectId]) {
                 transitPeriods[aspectId] = {
-                  transit: tk, natal: nt.key, type: a.name,
-                  startJd: jdT, endJd: jdT, peakJd: jdT, minOrb: o,
+                  transit: tk, natal: nt.key, natalLon: nt.lon,
+                  type: a.name, aspectAngle: a.angle,
+                  startJd: jdT, endJd: jdT,
+                  peakJd: jdT, minOrb: o,
                   peakLon: tLon, peakRetro: tSpeed < 0
                 };
               } else {
@@ -835,7 +859,6 @@ window.calculateSolar = function() {
         }
       }
 
-      // Закрываем аспекты, вышедшие из орба
       for (const key in transitPeriods) {
         if (!todaysKeys.has(key)) {
           completedTransits.push(transitPeriods[key]);
@@ -843,17 +866,32 @@ window.calculateSolar = function() {
         }
       }
     }
-    // Закрываем оставшиеся
     for (const key in transitPeriods) {
       completedTransits.push(transitPeriods[key]);
     }
+
+    // Уточняем пик бисекцией для каждого найденного транзита
+    completedTransits.forEach(t => {
+      let bCode = SE_BODIES[t.transit];
+      if (bCode === undefined) return;
+      // Берём окно ±1 день от грубого пика
+      let jdA = Math.max(t.startJd - 0.5, jdYearStart);
+      let jdB = Math.min(t.peakJd + 1, jdYearEnd);
+      if (t.peakJd > t.startJd) jdA = t.peakJd - 1;
+      let refined = refinePeak(bCode, t.natalLon, t.aspectAngle, jdA, jdB);
+      t.peakJd = refined.jd;
+      t.peakLon = refined.lon;
+      t.minOrb = refined.orb;
+      t.peakRetro = refined.retro;
+    });
+
     completedTransits.sort((a, b) => a.peakJd - b.peakJd);
 
     L.push(''); L.push(`────────── ПИКОВЫЕ ТРАНЗИТЫ СОЛЯРНОГО ГОДА ──────────`); L.push('');
     if (!completedTransits.length) {
       L.push('Мажорных транзитов медленных планет (орб \u22641\u00B0) не обнаружено.');
     } else {
-      L.push('Точные аспекты медленных планет к натальной карте (орб < 1\u00B0):');
+      L.push('Точные аспекты медленных планет к натальной карте:');
       L.push('');
       completedTransits.forEach(t => {
         let peakStr = formatJDLocal(t.peakJd, sTz);
@@ -862,15 +900,12 @@ window.calculateSolar = function() {
         let tName = PLANET_NAMES[t.transit] || t.transit;
         let nName = PLANET_NAMES[t.natal] || t.natal;
         let retro = t.peakRetro ? ' (R)' : '';
-        // Дом натальной точки
         let nLon = (t.natal === 'asc') ? natalHouses.asc : (t.natal === 'mc') ? natalHouses.mc : (natalPos[t.natal] ? natalPos[t.natal].longitude : NaN);
         let nH = !isNaN(nLon) ? houseOf(nLon, natalHouses.cusps) : '\u2014';
-        // Дом транзитной планеты в натальной карте
         let tH = houseOf(t.peakLon, natalHouses.cusps);
+        let orbStr = t.minOrb < 0.01 ? '0\u00B000\'' : `0\u00B0${String(Math.round(t.minOrb * 60)).padStart(2,'0')}'`;
 
-        let txt = `${peakStr}  ${tName}${retro} ${t.type} нат.${nName} (дом ${nH})`;
-        txt += `  тр.дом ${tH}`;
-        txt += `  [${startStr}\u2013${endStr}]`;
+        let txt = `${peakStr}  ${tName}${retro} ${t.type} нат.${nName} (дом ${nH})  орб ${orbStr}  тр.дом ${tH}  [${startStr}\u2013${endStr}]`;
         L.push(txt);
       });
     }
